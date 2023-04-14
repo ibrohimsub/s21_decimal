@@ -4,7 +4,6 @@ SRC = $(wildcard s21_*.c)
 OBJ = $(patsubst %.c, %.o, $(SRC))
 TEST_SRC = $(wildcard ./tests/s21_*.c)
 OS = $(shell uname -s)
-USERNAME = $(shell whoami)
 
 ifeq ($(OS), Linux)
 	CC = gcc -Wall -Werror -Wextra -std=c11 -lsubunit -lrt -lpthread -lm
@@ -41,21 +40,18 @@ leaks: $(TARGET)
 clang:
 	cp ../materials/linters/.clang-format ../src/.clang-format
 	clang-format -style=Google -n *.c *.h */*.c */*.h
-	rm .clang-format
 
-brsw:
-	eval "$(/opt/goinfre/$(USERNAME)/homebrew/bin/brew shellenv)"
-	brew update --force --quiet
-	chmod -R go-w "$(brew --prefix)/share/zsh"
-
-install_brew:
-	cd /opt/goinfre/$(USERNAME)
-	mkdir homebrew
-	git clone https://github.com/Homebrew/brew homebrew
-	make brsw
+brew:
+	cd ~
+	curl -fsSL https://rawgit.com/kube/42homebrew/master/install.sh | zsh
 
 lcov:
+ifeq ($(OS),Linux)
+	sudo apt install lcov
+endif
+ifeq ($(OS),Darwin)
 	brew install lcov
+endif
 
 clean_obj:
 	rm -rf *.o
