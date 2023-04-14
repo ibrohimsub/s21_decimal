@@ -39,6 +39,7 @@ leaks: $(TARGET)
 
 clang:
 	cp ../materials/linters/.clang-format ../src/.clang-format
+	clang-format -style=Google -i *.c *.h */*.c */*.h
 	clang-format -style=Google -n *.c *.h */*.c */*.h
 
 brew:

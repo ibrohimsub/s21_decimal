@@ -12,7 +12,4 @@
 #define EXP_PLUS_2 196608
 #define EXP_PLUS_28 1835008
 
-void tests(void);
-void testCase(Suite *test_case);
-
 #endif  //  SRC_S21_DECIMAL_TEST_H_

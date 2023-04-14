@@ -8787,7 +8787,23 @@ Suite *suite_add(void) {
   return s;
 }
 
-void tests(void) {
+void testCase(Suite *test_case) {
+  static int testcase_count = 1;
+
+  if (testcase_count > 1) {
+    putchar('\n');
+  }
+  printf("Running test case %d\n", testcase_count);
+
+  SRunner *runner = srunner_create(test_case);
+  srunner_set_fork_status(runner, CK_NOFORK);
+  srunner_run_all(runner, CK_NORMAL);
+  srunner_free(runner);
+
+  testcase_count++;
+}
+
+int main(void) {
   Suite *test_cases[] = {suite_add(),
                          suite_sub(),
                          suite_mul(),
@@ -8813,25 +8829,6 @@ void tests(void) {
   for (Suite **test_case = test_cases; *test_case != NULL; test_case++) {
     testCase(*test_case);
   }
-}
 
-void testCase(Suite *test_case) {
-  static int testcase_count = 1;
-
-  if (testcase_count > 1) {
-    putchar('\n');
-  }
-  printf("Running test case %d\n", testcase_count);
-
-  SRunner *runner = srunner_create(test_case);
-  srunner_set_fork_status(runner, CK_NOFORK);
-  srunner_run_all(runner, CK_NORMAL);
-  srunner_free(runner);
-
-  testcase_count++;
-}
-
-int main(void) {
-  tests();
   return 0;
 }

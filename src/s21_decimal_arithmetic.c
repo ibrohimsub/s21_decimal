@@ -1,152 +1,168 @@
 #include "s21_decimal.h"
 
 int s21_sub(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
-  // Swap operands if necessary
-  if (s21_getSign(value_1) && s21_getSign(value_2)) {
-    s21_decimal temporary1 = value_1;
-    value_1 = value_2;
-    value_2 = temporary1;
-    s21_setBit(&value_1, 127, 0);
-    s21_setBit(&value_2, 127, 0);
-  }
-
-  int fail = 0, res = 0, last_sign = 0;
-  // Compute sign of the result
-  if (s21_getSign(value_1) != s21_getSign(value_2)) {
-    s21_getSign(value_1) ? last_sign = 1 : 1;
-    s21_setBit(&value_1, 127, 0);
-    s21_setBit(&value_2, 127, 0);
-    fail = s21_add(value_1, value_2, result);
-  } else {
-    // Compute difference of the values using big decimal arithmetic
-    s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
-    s21_moveBigDec(value_1, &t1);
-    s21_moveBigDec(value_2, &t2);
-    int diff = s21_getScale(value_1) - s21_getScale(value_2);
-    diff > 0 ? s21_setScale(&value_2, s21_getScale(value_2) + diff)
-             : s21_setScale(&value_1, s21_getScale(value_1) - diff);
-    s21_norma(&t1, &t2, diff);
-    if (s21_GreaterBigDec(t2, t1)) {
-      s21_big_decimal temporary2 = t1;
-      t1 = t2;
-      t2 = temporary2;
-      s21_setSign(result);
+  int fail = 0;
+  if (result != NULL) {
+    // Swap operands if necessary
+    if (s21_getSign(value_1) && s21_getSign(value_2)) {
+      s21_decimal temporary1 = value_1;
+      value_1 = value_2;
+      value_2 = temporary1;
+      s21_setBit(&value_1, 127, 0);
+      s21_setBit(&value_2, 127, 0);
     }
-    s21_subBigDec(t1, t2, &res_diff);
-    res = s21_postNorma(&res_diff, s21_getScale(value_1));
-    if (res >= 0) {
-      s21_moveSmallDec(result, res_diff);
-      s21_setScale(result, res);
+
+    int res = 0, last_sign = 0;
+    // Compute sign of the result
+    if (s21_getSign(value_1) != s21_getSign(value_2)) {
+      s21_getSign(value_1) ? last_sign = 1 : 1;
+      s21_setBit(&value_1, 127, 0);
+      s21_setBit(&value_2, 127, 0);
+      fail = s21_add(value_1, value_2, result);
     } else {
-      fail = 1;
+      // Compute difference of the values using big decimal arithmetic
+      s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
+      s21_moveBigDec(value_1, &t1);
+      s21_moveBigDec(value_2, &t2);
+      int diff = s21_getScale(value_1) - s21_getScale(value_2);
+      diff > 0 ? s21_setScale(&value_2, s21_getScale(value_2) + diff)
+               : s21_setScale(&value_1, s21_getScale(value_1) - diff);
+      s21_norma(&t1, &t2, diff);
+      if (s21_GreaterBigDec(t2, t1)) {
+        s21_big_decimal temporary2 = t1;
+        t1 = t2;
+        t2 = temporary2;
+        s21_setSign(result);
+      }
+      s21_subBigDec(t1, t2, &res_diff);
+      res = s21_postNorma(&res_diff, s21_getScale(value_1));
+      if (res >= 0) {
+        s21_moveSmallDec(result, res_diff);
+        s21_setScale(result, res);
+      } else {
+        fail = 1;
+      }
     }
+
+    // Set the sign of the result
+    last_sign == 1 ? s21_setSign(result) : 0;
+
+    // Check for overflow and underflow
+    if (fail == 1 && s21_getSign(*result)) fail = 2;
+
+    // Set result to zero if there was an fail
+    if (fail) s21_setZero(result);
+  } else {
+    fail = 1;
   }
-
-  // Set the sign of the result
-  last_sign == 1 ? s21_setSign(result) : 0;
-
-  // Check for overflow and underflow
-  if (fail == 1 && s21_getSign(*result)) fail = 2;
-
-  // Set result to zero if there was an fail
-  if (fail) s21_setZero(result);
-
   return fail;
 }
 
 int s21_add(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
-  int value_1_sign = s21_getSign(value_1);
-  int value_2_sign = s21_getSign(value_2);
-
-  int last_sign = 0;
-  if (value_1_sign && value_2_sign) {
-    last_sign = 1;
-  }
-
   int fail = 0;
-  int take = 0;
-  if (value_1_sign != value_2_sign) {
-    int sign = value_1_sign;
-    s21_setBit(&value_1, 127, 0);
-    s21_setBit(&value_2, 127, 0);
-    if (sign) {
-      fail = s21_sub(value_2, value_1, result);
+
+  if (result != NULL) {
+    int value_1_sign = s21_getSign(value_1);
+    int value_2_sign = s21_getSign(value_2);
+
+    int last_sign = 0;
+    if (value_1_sign && value_2_sign) {
+      last_sign = 1;
+    }
+
+    int fail = 0;
+    int take = 0;
+    if (value_1_sign != value_2_sign) {
+      int sign = value_1_sign;
+      s21_setBit(&value_1, 127, 0);
+      s21_setBit(&value_2, 127, 0);
+      if (sign) {
+        fail = s21_sub(value_2, value_1, result);
+      } else {
+        fail = s21_sub(value_1, value_2, result);
+      }
     } else {
-      fail = s21_sub(value_1, value_2, result);
+      s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
+      int res = 0;
+      s21_moveBigDec(value_1, &t1);
+      s21_moveBigDec(value_2, &t2);
+      int diff = s21_getScale(value_1) - s21_getScale(value_2);
+      if (diff > 0) {
+        take = s21_getScale(value_1);
+        s21_setScale(&value_2, take);
+      } else {
+        take = s21_getScale(value_2);
+        s21_setScale(&value_1, take);
+      }
+      s21_norma(&t1, &t2, diff);
+      s21_addBigDec(t1, t2, &res_diff);
+      res = s21_postNorma(&res_diff, s21_getScale(value_1));
+      if (res >= 0) {
+        s21_moveSmallDec(result, res_diff);
+        s21_setScale(result, res);
+      } else {
+        fail = 1;
+      }
+    }
+
+    if (last_sign == 1) {
+      s21_setSign(result);
+    }
+
+    if (fail == 1 && s21_getSign(*result)) {
+      fail = 2;
+    }
+
+    if (fail) {
+      s21_setZero(result);
     }
   } else {
-    s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
-    int res = 0;
-    s21_moveBigDec(value_1, &t1);
-    s21_moveBigDec(value_2, &t2);
-    int diff = s21_getScale(value_1) - s21_getScale(value_2);
-    if (diff > 0) {
-      take = s21_getScale(value_1);
-      s21_setScale(&value_2, take);
-    } else {
-      take = s21_getScale(value_2);
-      s21_setScale(&value_1, take);
-    }
-    s21_norma(&t1, &t2, diff);
-    s21_addBigDec(t1, t2, &res_diff);
-    res = s21_postNorma(&res_diff, s21_getScale(value_1));
-    if (res >= 0) {
-      s21_moveSmallDec(result, res_diff);
-      s21_setScale(result, res);
-    } else {
-      fail = 1;
-    }
-  }
-
-  if (last_sign == 1) {
-    s21_setSign(result);
-  }
-
-  if (fail == 1 && s21_getSign(*result)) {
-    fail = 2;
-  }
-
-  if (fail) {
-    s21_setZero(result);
+    fail = 1;
   }
 
   return fail;
 }
 
 int s21_mul(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
-  int fail = 0, res = 0;
-  s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
-  s21_moveBigDec(value_1, &t1);
-  s21_moveBigDec(value_2, &t2);
+  int fail = 0;
 
-  // Determine sign of result
-  if (s21_getSign(value_1) != s21_getSign(value_2)) {
-    s21_setSign(result);
-  }
+  if (result != NULL) {
+    s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
+    s21_moveBigDec(value_1, &t1);
+    s21_moveBigDec(value_2, &t2);
 
-  // Compute product of absolute values
-  fail = s21_mulBigDec(t1, t2, &res_diff);
+    // Determine sign of result
+    if (s21_getSign(value_1) != s21_getSign(value_2)) {
+      s21_setSign(result);
+    }
 
-  // Compute res of result and normalize
-  res = s21_getScale(value_1) + s21_getScale(value_2);
-  res = s21_postNorma(&res_diff, res);
+    // Compute product of absolute values
+    fail = s21_mulBigDec(t1, t2, &res_diff);
 
-  // Check for overflow and set result
-  if (res >= 0) {
-    s21_setScale(result, res);
-    s21_moveSmallDec(result, res_diff);
+    int res = 0;
+    // Compute res of result and normalize
+    res = s21_getScale(value_1) + s21_getScale(value_2);
+    res = s21_postNorma(&res_diff, res);
+
+    // Check for overflow and set result
+    if (res >= 0) {
+      s21_setScale(result, res);
+      s21_moveSmallDec(result, res_diff);
+    } else {
+      fail = 1;
+    }
+
+    // Check for negative zero and set fail code
+    if (fail == 1 && s21_getSign(*result)) {
+      fail = 2;
+    }
+
+    // Set result to zero in case of fail
+    if (fail) {
+      s21_setZero(result);
+    }
   } else {
     fail = 1;
-  }
-
-  // Check for negative zero and set fail code
-  if (fail == 1 && s21_getSign(*result)) {
-    fail = 2;
-  }
-
-  // Set result to zero in case of fail
-  if (fail) {
-    s21_setZero(result);
   }
 
   return fail;
@@ -154,32 +170,42 @@ int s21_mul(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
 
 int s21_div(s21_decimal value_1, s21_decimal value_2, s21_decimal *result) {
   int fail = 0;
-  if (s21_DecNotEmpty(value_2)) {
-    int res = 0, res_scale = 0;
-    s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
-    s21_moveBigDec(value_1, &t1);
-    s21_moveBigDec(value_2, &t2);
-    if (s21_getSign(value_1) != s21_getSign(value_2)) s21_setSign(result);
-    res = s21_divBigDec(t1, t2, &res_diff);
-    s21_setScale(&value_1, s21_getScale(value_1) + res);
-    res_scale = s21_getScale(value_1) - s21_getScale(value_2);
-    if (res_scale > 0) {
-      res_scale = s21_postNorma(&res_diff, res_scale);
-    } else if (res_scale < 0) {
-      s21_increaseScaleBigDec(&res_diff, abs(res_scale));
-      res_scale = s21_postNorma(&res_diff, 0);
-    }
-    if (res_scale >= 0) {
-      s21_moveSmallDec(result, res_diff);
-      s21_setScale(result, res_scale);
+  if (result != NULL) {
+    if (s21_DecNotEmpty(value_2)) {
+      int res = 0, res_scale = 0;
+      s21_big_decimal t1 = {0}, t2 = {0}, res_diff = {0};
+      s21_moveBigDec(value_1, &t1);
+      s21_moveBigDec(value_2, &t2);
+      if (s21_getSign(value_1) != s21_getSign(value_2)) s21_setSign(result);
+      res = s21_divBigDec(t1, t2, &res_diff);
+      s21_setScale(&value_1, s21_getScale(value_1) + res);
+      res_scale = s21_getScale(value_1) - s21_getScale(value_2);
+      if (res_scale > 0) {
+        res_scale = s21_postNorma(&res_diff, res_scale);
+      } else if (res_scale < 0) {
+        s21_increaseScaleBigDec(&res_diff, abs(res_scale));
+        res_scale = s21_postNorma(&res_diff, 0);
+      }
+      if (res_scale >= 0) {
+        s21_moveSmallDec(result, res_diff);
+        s21_setScale(result, res_scale);
+      } else {
+        fail = 1;
+      }
     } else {
-      fail = 1;
+      fail = 3;
+    }
+    if (fail == 1 && s21_getSign(*result)) {
+      fail = 2;
+    }
+
+    if (fail) {
+      s21_setZero(result);
     }
   } else {
-    fail = 3;
+    fail = 1;
   }
-  if (fail == 1 && s21_getSign(*result)) fail = 2;
-  if (fail) s21_setZero(result);
+
   return fail;
 }
 
