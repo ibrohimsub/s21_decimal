@@ -70,6 +70,5 @@ clean_test:
 
 clean: clean_lib clean_lib clean_test clean_obj
 	rm -rf lib_test
-	rm -rf RESULT_VALGRIND.txt
 
 .PHONY: all clean check lcov
